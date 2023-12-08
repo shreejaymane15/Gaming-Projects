@@ -42,6 +42,7 @@ function Bird:update(dt)
     -- to add antigravity to space 
     if love.keyboard.wasPressed('space') then
         self.dy = -5;
+        sounds['jump']:play()
     end
 
     -- to add velocity to height of image
