@@ -111,10 +111,60 @@ end
 
 function love.keyPressed(key)
     -- add to our table of keys pressed this frame
-    love.keyboard.keyPressed[key] = true
+    love.keyboard.keysPressed[key] = true
 end
 
 
 --[[
-    
+    A custom fuction that will let us test for individual keystrokes outside of the default 'love.keypressed' callback,
+    since we can't call that logic elsewhere by default
 ]]
+
+function love.keyboard.wasPressed(key)
+    if love.keyboard.keysPressed[key] then
+        return true
+    else
+        return false
+    end
+end
+
+--[[
+    called each frame after update; is responsible simply for drawing all of our objects and more to the screen
+]]
+
+function love.draw()
+    -- begin drawing with push, in our virtual resoultion
+    push:apply('start')
+
+
+    -- background should be drawn regardless of state, scaled to fit our virtual resoultion
+    local backgroundWidth = gTextures['background']:getWidth()
+    local backgoundHeight = gTextures['backgrounnd']:getHeight()
+
+    love.graphics.draw(gTextures['background'],
+        --draw at co-ordinate 0, 0
+        0, 0,
+
+        -- no rotation
+        0,
+
+        --scales factors on X and Y axis so it fills the screen
+        VIRTUAL_WIDTH / (backgroundWidth - 1), VIRTUAL_HEIGHT / (backgoundHeight - 1))
+    
+    -- use the state of machine to defer rendering to the current state we are in
+    gStateMachine:render()
+
+    --display FPS for debugging; Simply comment out to remove
+    displayFPS()
+
+    push:apply('end')
+end
+
+-- Renders current FPS
+
+function displayFPS()
+    -- Simply FPS display across all StartState
+    love.graphics.setFont(gFonts['small'])
+    love.graphics.setColor(0, 255, 0, 255)
+    love.graphics.print('FPS: '.. tostring(love.timer.getFPS()), 5, 5)
+end
