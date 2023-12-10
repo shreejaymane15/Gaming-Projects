@@ -10,7 +10,10 @@ require 'src/constants'
 
 require 'src/StateMachine'
 
-require 'src/states/BaseState'
+require 'src/Util'
 
+
+require 'src/states/BaseState'
+require 'src/states/PlayState'
 require 'src/states/StartState'
 

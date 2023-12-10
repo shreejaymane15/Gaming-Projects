@@ -27,12 +27,19 @@ function love.load()
 
 
     -- load up the graphics we'll using throughout oue game
-    gTexture = {
+    gTextures = {
         ['background'] = love.graphics.newImage('graphics/background.png'),
         ['main'] = love.graphics.newImage('graphics/breakout.png'),
         ['arrows'] = love.graphics.newImage('graphics/arrows.png'),
         ['hearts'] = love.graphics.newImage('graphics/hearts.png'),
         ['particle'] = love.graphics.newImage('graphics/particle.png')
+    }
+
+
+    -- Quads we will generate for all of our textures; Quads allow us
+    -- to show only part of a texture and not the entire things
+    gFrames = {
+        ['paddles'] = GenerateQuadsPaddles(gTextures['main'])
     }
 
     -- initialize our virtual resoultion, which will be rendered in our
@@ -47,27 +54,31 @@ function love.load()
     -- set up our sound effects; later, we can just insert them
     -- call each entry's play method
     gSounds = {
-        ['paddle-hit'] = love.audio.newSource('sounds/paddle-hit.wav'),
-        ['score'] = love.audio.newSource('sounds/score.wav'),
-        ['wall-hit'] = love.audio.newSource('sounds/wall-hit.wav'),
-        ['confirm'] = love.audio.newSource('sounds/confirm.wav'),
-        ['select'] = love.audio.newSource('sounds/select.wav'),
-        ['no-select'] = love.audio.newSource('sounds/no-select.wav'),
-        ['brick-hit-1'] = love.audio.newSource('sounds/brick-hit-1.wav'),
-        ['brick-hit-2'] = love.audio.newSource('sounds/brick-hit-2.wav'),
-        ['hurt'] = love.audio.newSource('sounds/hurt.wav'),
-        ['victory'] = love.audio.newSource('sounds/victory.wav'),
-        ['recover'] = love.audio.newSource('sounds/recover.wav'),
-        ['high-score'] = love.audio.newSource('sounds/high-score.wav'),
-        ['pause'] = love.audio.newSource('sounds/pause.wav'),
-        ['music'] = love.audio.newSource('sounds/mucic.wav')
+        ['paddle-hit'] = love.audio.newSource('sounds/paddle_hit.wav', 'static'),
+        ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
+        ['wall-hit'] = love.audio.newSource('sounds/wall_hit.wav', 'static'),
+        ['confirm'] = love.audio.newSource('sounds/confirm.wav', 'static'),
+        ['select'] = love.audio.newSource('sounds/select.wav', 'static'),
+        ['no-select'] = love.audio.newSource('sounds/no-select.wav', 'static'),
+        ['brick-hit-1'] = love.audio.newSource('sounds/brick-hit-1.wav', 'static'),
+        ['brick-hit-2'] = love.audio.newSource('sounds/brick-hit-2.wav', 'static'),
+        ['hurt'] = love.audio.newSource('sounds/hurt.wav', 'static'),
+        ['victory'] = love.audio.newSource('sounds/victory.wav', 'static'),
+        ['recover'] = love.audio.newSource('sounds/recover.wav', 'static'),
+        ['high-score'] = love.audio.newSource('sounds/high_score.wav', 'static'),
+        ['pause'] = love.audio.newSource('sounds/pause.wav', 'static'),
+
+        ['music'] = love.audio.newSource('sounds/music.wav', 'static')
     }
+
 
 
     gStateMachine = StateMachine {
-        ['start'] = function() return StartState() end
+        ['start'] = function() return StartState() end,
+        ['play'] = function() return PlayState() end
     }
     gStateMachine:change('start')
+
 
     -- a table we'll use to keep track of which keys have been pressed this 
     -- frame, to get around the fact that LOVE's default callback won't let us
@@ -139,7 +150,7 @@ function love.draw()
 
     -- background should be drawn regardless of state, scaled to fit our virtual resoultion
     local backgroundWidth = gTextures['background']:getWidth()
-    local backgoundHeight = gTextures['backgrounnd']:getHeight()
+    local backgroundHeight = gTextures['background']:getHeight()
 
     love.graphics.draw(gTextures['background'],
         --draw at co-ordinate 0, 0
@@ -149,7 +160,7 @@ function love.draw()
         0,
 
         --scales factors on X and Y axis so it fills the screen
-        VIRTUAL_WIDTH / (backgroundWidth - 1), VIRTUAL_HEIGHT / (backgoundHeight - 1))
+        VIRTUAL_WIDTH / (backgroundWidth - 1), VIRTUAL_HEIGHT / (backgroundHeight - 1))
     
     -- use the state of machine to defer rendering to the current state we are in
     gStateMachine:render()
