@@ -1,14 +1,13 @@
-require 'src/Dependancies'
+require 'src/Dependencies'
 
 --[[
-    Called just once the beginning of the game; used to set up game objects, variables etc.
-    and Prepare the game world
+    Called just once at the beginning of the game; used to set up
+    game objects, variables, etc. and prepare the game world.
 ]]
-
 function love.load()
-    -- set love's default filter to "nearest-neighbour", while essentially
+    -- set love's default filter to "nearest-neighbor", which essentially
     -- means there will be no filtering of pixels (blurriness), which is
-    -- improvement for a nice crisp, 2D look
+    -- important for a nice crisp, 2D look
     love.graphics.setDefaultFilter('nearest', 'nearest')
 
     -- seed the RNG so that calls to random are always random
@@ -17,7 +16,7 @@ function love.load()
     -- set the application title bar
     love.window.setTitle('Breakout')
 
-    -- initailize our fonts
+    -- initialize our nice-looking retro text fonts
     gFonts = {
         ['small'] = love.graphics.newFont('fonts/font.ttf', 8),
         ['medium'] = love.graphics.newFont('fonts/font.ttf', 16),
@@ -25,8 +24,7 @@ function love.load()
     }
     love.graphics.setFont(gFonts['small'])
 
-
-    -- load up the graphics we'll using throughout oue game
+    -- load up the graphics we'll be using throughout our states
     gTextures = {
         ['background'] = love.graphics.newImage('graphics/background.png'),
         ['main'] = love.graphics.newImage('graphics/breakout.png'),
@@ -35,24 +33,22 @@ function love.load()
         ['particle'] = love.graphics.newImage('graphics/particle.png')
     }
 
-
     -- Quads we will generate for all of our textures; Quads allow us
-    -- to show only part of a texture and not the entire things
+    -- to show only part of a texture and not the entire thing
     gFrames = {
         ['paddles'] = GenerateQuadsPaddles(gTextures['main'])
     }
-
-    -- initialize our virtual resoultion, which will be rendered in our
+    
+    -- initialize our virtual resolution, which will be rendered within our
     -- actual window no matter its dimensions
-
-    push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT,{
+    push:setupScreen(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT, {
         vsync = true,
         fullscreen = false,
         resizable = true
     })
 
-    -- set up our sound effects; later, we can just insert them
-    -- call each entry's play method
+    -- set up our sound effects; later, we can just index this table and
+    -- call each entry's `play` method
     gSounds = {
         ['paddle-hit'] = love.audio.newSource('sounds/paddle_hit.wav', 'static'),
         ['score'] = love.audio.newSource('sounds/score.wav', 'static'),
@@ -71,17 +67,25 @@ function love.load()
         ['music'] = love.audio.newSource('sounds/music.wav', 'static')
     }
 
-
-
+    -- the state machine we'll be using to transition between various states
+    -- in our game instead of clumping them together in our update and draw
+    -- methods
+    --
+    -- our current game state can be any of the following:
+    -- 1. 'start' (the beginning of the game, where we're told to press Enter)
+    -- 2. 'paddle-select' (where we get to choose the color of our paddle)
+    -- 3. 'serve' (waiting on a key press to serve the ball)
+    -- 4. 'play' (the ball is in play, bouncing between paddles)
+    -- 5. 'victory' (the current level is over, with a victory jingle)
+    -- 6. 'game-over' (the player has lost; display score and allow restart)
     gStateMachine = StateMachine {
         ['start'] = function() return StartState() end,
         ['play'] = function() return PlayState() end
     }
     gStateMachine:change('start')
 
-
-    -- a table we'll use to keep track of which keys have been pressed this 
-    -- frame, to get around the fact that LOVE's default callback won't let us
+    -- a table we'll use to keep track of which keys have been pressed this
+    -- frame, to get around the fact that LÖVE's default callback won't let us
     -- test for input from within other functions
     love.keyboard.keysPressed = {}
 end
@@ -120,7 +124,7 @@ end
     like when we want to quit
 ]]
 
-function love.keyPressed(key)
+function love.keypressed(key)
     -- add to our table of keys pressed this frame
     love.keyboard.keysPressed[key] = true
 end
@@ -142,40 +146,38 @@ end
 --[[
     called each frame after update; is responsible simply for drawing all of our objects and more to the screen
 ]]
-
 function love.draw()
-    -- begin drawing with push, in our virtual resoultion
+    -- begin drawing with push, in our virtual resolution
     push:apply('start')
 
-
-    -- background should be drawn regardless of state, scaled to fit our virtual resoultion
+    -- background should be drawn regardless of state, scaled to fit our
+    -- virtual resolution
     local backgroundWidth = gTextures['background']:getWidth()
     local backgroundHeight = gTextures['background']:getHeight()
 
-    love.graphics.draw(gTextures['background'],
-        --draw at co-ordinate 0, 0
-        0, 0,
-
+    love.graphics.draw(gTextures['background'], 
+        -- draw at coordinates 0, 0
+        0, 0, 
         -- no rotation
         0,
-
-        --scales factors on X and Y axis so it fills the screen
+        -- scale factors on X and Y axis so it fills the screen
         VIRTUAL_WIDTH / (backgroundWidth - 1), VIRTUAL_HEIGHT / (backgroundHeight - 1))
     
-    -- use the state of machine to defer rendering to the current state we are in
+    -- use the state machine to defer rendering to the current state we're in
     gStateMachine:render()
-
-    --display FPS for debugging; Simply comment out to remove
+    
+    -- display FPS for debugging; simply comment out to remove
     displayFPS()
-
+    
     push:apply('end')
 end
 
--- Renders current FPS
-
+--[[
+    Renders the current FPS.
+]]
 function displayFPS()
-    -- Simply FPS display across all StartState
+    -- simple FPS display across all states
     love.graphics.setFont(gFonts['small'])
-    love.graphics.setColor(0, 255, 0, 255)
-    love.graphics.print('FPS: '.. tostring(love.timer.getFPS()), 5, 5)
+    love.graphics.setColor(0, 1, 0, 1)
+    love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 5, 5)
 end

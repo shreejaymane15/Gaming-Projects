@@ -1,11 +1,11 @@
 StartState = Class{__includes = BaseState}
 
--- whether we're highlighting 'Start' or "High Scores"
+-- whether we're highlighting "Start" or "High Scores"
 local highlighted = 1
 
 function StartState:update(dt)
-    -- toggle highlighted option if we press an arrow key up
-    if love.keyboard.wasPressed('up') or love.keyboard.wasPressed('down')  then
+    -- toggle highlighted option if we press an arrow key up or down
+    if love.keyboard.wasPressed('up') or love.keyboard.wasPressed('down') then
         highlighted = highlighted == 1 and 2 or 1
         gSounds['paddle-hit']:play()
     end
@@ -18,13 +18,12 @@ function StartState:update(dt)
             gStateMachine:change('play')
         end
     end
-    
 
     -- we no longer have this globally, so include here
     if love.keyboard.wasPressed('escape') then
         love.event.quit()
     end
-end 
+end
 
 function StartState:render()
     -- title
