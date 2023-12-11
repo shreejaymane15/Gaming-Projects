@@ -2,6 +2,20 @@ PlayState = Class{__includes = BaseState}
 
 function PlayState:init()
     self.paddle = Paddle()
+
+    -- initialize ball with skin #1; different skins = different sprites
+    self.ball = Ball(math.random(7))
+
+    -- give ball random starting strategy
+    self.ball.dx = math.random(-200, 200)
+    self.ball.dy = math.random(-50, -60)
+
+    -- give ball position in the center
+    self.ball.x = VIRTUAL_WIDTH / 2 - 4
+    self.ball.y = VIRTUAL_HEIGHT - 42
+
+    -- use the "static" createMap function to generate a brick
+    self.bricks = LevelMaker.createMap()
 end
 
 function PlayState:update(dt)
@@ -20,6 +34,24 @@ function PlayState:update(dt)
 
     -- update positions based on velocity
     self.paddle:update(dt)
+    self.ball:update(dt)
+
+    if self.ball:collides(self.paddle) then
+        -- reverse Y velocity if collision detection between paddle and ball
+        self.ball.dy = -self.ball.dy
+        gSounds['paddle-hit']:play()
+    end
+
+    -- detect collision across all bricks with the ball
+    for k, brick in pairs(self.bricks) do
+
+        -- only check collision if we're in play
+        if brick.inPlay and self.ball:collides(brick) then
+            
+            -- trigger the brick's hit function, which remove 
+                brick:hit()
+        end
+    end
 
     if love.keyboard.wasPressed('escape') then
         love.event.quit()
@@ -27,8 +59,14 @@ function PlayState:update(dt)
 end
 
 function PlayState:render()
-    self.paddle:render()
+    -- render bricks
+    for k, brick in pairs(self.bricks) do
+        brick:render()
+    end 
 
+    self.paddle:render()
+    self.ball:render()
+   
     -- pause text, if paused
     if self.paused then
         love.graphics.setFont(gFonts['large'])
