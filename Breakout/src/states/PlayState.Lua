@@ -80,7 +80,7 @@ function PlayState:update(dt)
 
 
             -- add score
-                self.score = self.score + 10
+                self.score = self.score + (brick.tier * 200 + brick.color * 25)
             
             -- trigger the brick's hit function, which remove 
                 brick:hit()
@@ -151,6 +151,11 @@ function PlayState:update(dt)
         end
     end
 
+        -- for rendering particle systems
+    for k, brick in pairs(self.bricks) do
+        brick:update(dt)
+    end
+    
 
     if love.keyboard.wasPressed('escape') then
         love.event.quit()
@@ -163,6 +168,11 @@ function PlayState:render()
         brick:render()
     end 
 
+    -- render all particle systems
+    for k, brick in pairs(self.bricks) do
+        brick:renderParticles()
+    end
+    
     self.paddle:render()
     self.ball:render()
    
