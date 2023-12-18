@@ -36,6 +36,7 @@ function love.load()
     -- Quads we will generate for all of our textures; Quads allow us
     -- to show only part of a texture and not the entire thing
     gFrames = {
+        ['arrows'] = GenerateQuads(gTextures['arrows'], 24, 24),
         ['paddles'] = GenerateQuadsPaddles(gTextures['main']),
         ['balls'] = GenerateQuadsBalls(gTextures['main']),
         ['bricks'] = GenerateQuadsBricks(gTextures['main']),
@@ -83,13 +84,21 @@ function love.load()
     -- 6. 'game-over' (the player has lost; display score and allow restart)
     gStateMachine = StateMachine {
         ['start'] = function() return StartState() end,
-        ['serve'] = function() return ServeState() end,
         ['play'] = function() return PlayState() end,
+        ['serve'] = function() return ServeState() end,
         ['game-over'] = function() return GameOverState() end,
-        ['victory'] = function() return VictoryState() end
-
+        ['victory'] = function() return VictoryState() end,
+        ['high-scores'] = function() return HighScoreState() end,
+        ['enter-high-score'] = function() return EnterHighScoreState() end,
+        ['paddle-select'] = function() return PaddleSelectState() end
     }
-    gStateMachine:change('start')
+    gStateMachine:change('start', {
+        highScores = loadHighScores()
+    })
+
+    -- play our music outside of all states and set it to looping
+    gSounds['music']:play()
+    gSounds['music']:setLooping(true)
 
     -- a table we'll use to keep track of which keys have been pressed this
     -- frame, to get around the fact that LÖVE's default callback won't let us
@@ -98,50 +107,47 @@ function love.load()
 end
 
 --[[
-    Called whenever we change the dimension of the window, as by dragging out its bottom corner
-    For Example -> In this case, we only need to worry about calling out to 'push' to handle
-    resizing. Takes in a 'w' and 'h' variable resp.
+    Called whenever we change the dimensions of our window, as by dragging
+    out its bottom corner, for example. In this case, we only need to worry
+    about calling out to `push` to handle the resizing. Takes in a `w` and
+    `h` variable representing width and height, respectively.
 ]]
-
 function love.resize(w, h)
     push:resize(w, h)
 end
 
 --[[
-    called every frame, passing in 'dt' since the last frame, 'dt'
-    is short for 'deltatime' and is measured in seconds. Multiplying
-    this by any changes we wish to make in our game will allow our game to perform
-    consistently across all hardware; otherwise, any changes we make will be applied
-    as fast as possible and vary across system hardware
+    Called every frame, passing in `dt` since the last frame. `dt`
+    is short for `deltaTime` and is measured in seconds. Multiplying
+    this by any changes we wish to make in our game will allow our
+    game to perform consistently across all hardware; otherwise, any
+    changes we make will be applied as fast as possible and will vary
+    across system hardware.
 ]]
-
 function love.update(dt)
     -- this time, we pass in dt to the state object we're currently using
     gStateMachine:update(dt)
 
-    -- reset keys presssed
+    -- reset keys pressed
     love.keyboard.keysPressed = {}
-
 end
 
 --[[
     A callback that processes key strokes as they happen, just the once.
-    Does not account for keys that are held down, which is handled by a seperate function
-    ('love.keyboard.isDown'). Useful for when we want things happen right away, just once,
-    like when we want to quit
+    Does not account for keys that are held down, which is handled by a
+    separate function (`love.keyboard.isDown`). Useful for when we want
+    things to happen right away, just once, like when we want to quit.
 ]]
-
 function love.keypressed(key)
     -- add to our table of keys pressed this frame
     love.keyboard.keysPressed[key] = true
 end
 
-
 --[[
-    A custom fuction that will let us test for individual keystrokes outside of the default 'love.keypressed' callback,
-    since we can't call that logic elsewhere by default
+    A custom function that will let us test for individual keystrokes outside
+    of the default `love.keypressed` callback, since we can't call that logic
+    elsewhere by default.
 ]]
-
 function love.keyboard.wasPressed(key)
     if love.keyboard.keysPressed[key] then
         return true
@@ -151,7 +157,8 @@ function love.keyboard.wasPressed(key)
 end
 
 --[[
-    called each frame after update; is responsible simply for drawing all of our objects and more to the screen
+    Called each frame after update; is responsible simply for
+    drawing all of our game objects and more to the screen.
 ]]
 function love.draw()
     -- begin drawing with push, in our virtual resolution
@@ -180,23 +187,63 @@ function love.draw()
 end
 
 --[[
-    Renders the current FPS.
+    Loads high scores from a .lst file, saved in LÖVE2D's default save directory in a subfolder
+    called 'breakout'.
 ]]
-function displayFPS()
-    -- simple FPS display across all states
-    love.graphics.setFont(gFonts['small'])
-    love.graphics.setColor(0, 1, 0, 1)
-    love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 5, 5)
+function loadHighScores()
+    love.filesystem.setIdentity('breakout')
+
+    -- if the file doesn't exist, initialize it with some default scores
+    if not love.filesystem.getInfo('breakout.lst') then
+        local scores = ''
+        for i = 10, 1, -1 do
+            scores = scores .. 'CTO\n'
+            scores = scores .. tostring(i * 1000) .. '\n'
+        end
+
+        love.filesystem.write('breakout.lst', scores)
+    end
+
+    -- flag for whether we're reading a name or not
+    local name = true
+    local currentName = nil
+    local counter = 1
+
+    -- initialize scores table with at least 10 blank entries
+    local scores = {}
+
+    for i = 1, 10 do
+        -- blank table; each will hold a name and a score
+        scores[i] = {
+            name = nil,
+            score = nil
+        }
+    end
+
+    -- iterate over each line in the file, filling in names and scores
+    for line in love.filesystem.lines('breakout.lst') do
+        if name then
+            scores[counter].name = string.sub(line, 1, 3)
+        else
+            scores[counter].score = tonumber(line)
+            counter = counter + 1
+        end
+
+        -- flip the name flag
+        name = not name
+    end
+
+    return scores
 end
 
-
 --[[
-    Renders hearts based on how much health is remaining
+    Renders hearts based on how much health the player has. First renders
+    full hearts, then empty hearts for however much health we're missing.
 ]]
 function renderHealth(health)
-    -- start of our hearts rendering
+    -- start of our health rendering
     local healthX = VIRTUAL_WIDTH - 100
-
+    
     -- render health left
     for i = 1, health do
         love.graphics.draw(gTextures['hearts'], gFrames['hearts'][1], healthX, 4)
@@ -211,10 +258,19 @@ function renderHealth(health)
 end
 
 --[[
-    Simply renders the player's score at the top right, with left side padding
-    for the score number
+    Renders the current FPS.
 ]]
+function displayFPS()
+    -- simple FPS display across all states
+    love.graphics.setFont(gFonts['small'])
+    love.graphics.setColor(0, 1, 0, 1)
+    love.graphics.print('FPS: ' .. tostring(love.timer.getFPS()), 5, 5)
+end
 
+--[[
+    Simply renders the player's score at the top right, with left-side padding
+    for the score number.
+]]
 function renderScore(score)
     love.graphics.setFont(gFonts['small'])
     love.graphics.print('Score:', VIRTUAL_WIDTH - 60, 5)

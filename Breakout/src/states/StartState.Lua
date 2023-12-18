@@ -1,7 +1,14 @@
+-- the "__includes" bit here means we're going to inherit all of the methods
+-- that BaseState has, so it will have empty versions of all StateMachine methods
+-- even if we don't override them ourselves; handy to avoid superfluous code!
 StartState = Class{__includes = BaseState}
 
 -- whether we're highlighting "Start" or "High Scores"
 local highlighted = 1
+
+function StartState:enter(params)
+    self.highScores = params.highScores
+end
 
 function StartState:update(dt)
     -- toggle highlighted option if we press an arrow key up or down
@@ -15,12 +22,12 @@ function StartState:update(dt)
         gSounds['confirm']:play()
 
         if highlighted == 1 then
-            gStateMachine:change('serve', {
-            paddle = Paddle(1),
-            bricks = LevelMaker.createMap(1),
-            health = 3,
-            score = 0,
-            level = 1
+            gStateMachine:change('paddle-select', {
+                highScores = self.highScores
+            })
+        else
+            gStateMachine:change('high-scores', {
+                highScores = self.highScores
             })
         end
     end
